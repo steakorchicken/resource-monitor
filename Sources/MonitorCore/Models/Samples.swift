@@ -100,4 +100,65 @@ public struct Snapshot: Sendable {
     public var disk: DiskSample?
     public var network: NetworkSample?
     public var processes: ProcessSnapshot?
+    public var gpu: GPUSample?
+    public var battery: BatterySample?
+    public var sensors: SensorSample?
+}
+
+public struct GPUSample: Sendable {
+    public var timestamp: TimeInterval
+    public var model: String
+    public var deviceUtilization: Double
+    public var rendererUtilization: Double
+    public var tilerUtilization: Double
+    public var memoryInUse: UInt64
+}
+
+public enum BatteryState: Sendable {
+    case charging, discharging, charged
+}
+
+public struct BatterySample: Sendable {
+    public var timestamp: TimeInterval
+    public var percent: Double
+    public var state: BatteryState
+    public var powerSource: String          // "Battery Power" / "AC Power"
+    public var timeRemaining: TimeInterval? // to empty when discharging, to full when charging
+    public var cycleCount: Int?
+    public var healthPercent: Double?
+    public var temperatureCelsius: Double?
+    public var watts: Double?               // magnitude of current power flow
+}
+
+public enum SensorGroup: String, Sendable, CaseIterable {
+    case cpu = "CPU", gpu = "GPU", battery = "Battery", other = "Other"
+}
+
+public struct TemperatureReading: Sendable, Identifiable {
+    public var id: String { key }
+    public var key: String
+    public var name: String
+    public var group: SensorGroup
+    public var celsius: Double
+}
+
+public struct FanReading: Sendable, Identifiable {
+    public var id: Int { index }
+    public var index: Int
+    public var rpm: Double
+    public var minRPM: Double
+    public var maxRPM: Double
+}
+
+public struct SensorSample: Sendable {
+    public var timestamp: TimeInterval
+    public var temperatures: [TemperatureReading]
+    public var fans: [FanReading]
+
+    public var cpuTemperatures: [Double] { temperatures.filter { $0.group == .cpu }.map(\.celsius) }
+    public var cpuAverage: Double? {
+        let t = cpuTemperatures
+        return t.isEmpty ? nil : t.reduce(0, +) / Double(t.count)
+    }
+    public var cpuMax: Double? { cpuTemperatures.max() }
 }

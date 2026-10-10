@@ -26,8 +26,6 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Rows shown so far; GPU, Sensors and Battery arrive in Phase 5.
-    static let resources: [SidebarItem] = [.cpu, .memory, .disk, .network]
 }
 
 struct SidebarView: View {
@@ -36,7 +34,7 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: $selection) {
-            ForEach(SidebarItem.resources) { item in
+            ForEach(store.availableSections) { item in
                 resourceRow(item).tag(item)
                     .listRowSeparator(.hidden)
             }
@@ -82,7 +80,13 @@ struct SidebarView: View {
                 SparklineView(values: store.netUpHistory.elements, color: Theme.networkUp, maxValue: top)
                 SparklineView(values: store.netDownHistory.elements, color: Theme.networkDown, maxValue: top)
             }
-        default:
+        case .gpu:
+            SparklineView(values: store.gpuHistory.elements, color: item.tint, maxValue: 100)
+        case .sensors:
+            SparklineView(values: store.cpuTempHistory.elements, color: item.tint, maxValue: 110)
+        case .battery:
+            SparklineView(values: store.batteryHistory.elements, color: item.tint, maxValue: 100)
+        case .processes:
             EmptyView()
         }
     }
@@ -100,7 +104,14 @@ struct SidebarView: View {
         case .network:
             guard let n = store.network else { return "—" }
             return "↓ \(RateFormatter.string(bytesPerSecond: n.downBytesPerSecond))  ↑ \(RateFormatter.string(bytesPerSecond: n.upBytesPerSecond))"
-        default:
+        case .gpu:
+            return store.gpu.map { RateFormatter.percent($0.deviceUtilization) } ?? "—"
+        case .sensors:
+            return store.sensors?.cpuAverage.map { String(format: "CPU %.0f °C", $0) } ?? "—"
+        case .battery:
+            guard let b = store.battery else { return "—" }
+            return String(format: "%.0f %% · ", b.percent) + (b.state == .charging ? "Charging" : (b.state == .charged ? "Charged" : "On battery"))
+        case .processes:
             return ""
         }
     }

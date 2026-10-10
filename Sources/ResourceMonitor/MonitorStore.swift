@@ -16,6 +16,9 @@ final class MonitorStore {
     private(set) var memory: MemorySample?
     private(set) var disk: DiskSample?
     private(set) var network: NetworkSample?
+    private(set) var gpu: GPUSample?
+    private(set) var battery: BatterySample?
+    private(set) var sensors: SensorSample?
     private(set) var processes: [ProcessInfoRow] = []
     private(set) var processCount = 0
     private(set) var threadCount = 0
@@ -28,12 +31,24 @@ final class MonitorStore {
     private(set) var diskWriteHistory = RingBuffer<Double>(capacity: historyCapacity)
     private(set) var netDownHistory = RingBuffer<Double>(capacity: historyCapacity)
     private(set) var netUpHistory = RingBuffer<Double>(capacity: historyCapacity)
+    private(set) var gpuHistory = RingBuffer<Double>(capacity: historyCapacity)
+    private(set) var cpuTempHistory = RingBuffer<Double>(capacity: historyCapacity)
+    private(set) var batteryHistory = RingBuffer<Double>(capacity: historyCapacity)
 
     /// Number of visible views that want fresh process data every tick. Otherwise processes refresh every 5 s.
     @ObservationIgnored private var processDemand = 0
     @ObservationIgnored private var lastProcessSample: TimeInterval = 0
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private let sampler = SystemSampler()
+
+    /// Sidebar rows that have data on this Mac.
+    var availableSections: [SidebarItem] {
+        var items: [SidebarItem] = [.cpu, .memory, .disk, .network]
+        if gpu != nil { items.append(.gpu) }
+        if sensors != nil { items.append(.sensors) }
+        if battery != nil { items.append(.battery) }
+        return items
+    }
 
     func start() {
         guard task == nil else { return }
@@ -80,6 +95,18 @@ final class MonitorStore {
             disk = d
             diskReadHistory.append(d.readBytesPerSecond)
             diskWriteHistory.append(d.writeBytesPerSecond)
+        }
+        if let g = s.gpu {
+            gpu = g
+            gpuHistory.append(g.deviceUtilization)
+        }
+        battery = s.battery
+        if let b = s.battery { batteryHistory.append(b.percent) }
+        if let t = s.sensors {
+            sensors = t
+            if let avg = t.cpuAverage { cpuTempHistory.append(avg) }
+        } else {
+            sensors = nil
         }
         if let p = s.processes {
             processes = p.rows
