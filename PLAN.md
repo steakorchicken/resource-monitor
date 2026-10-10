@@ -227,3 +227,8 @@ Add `.gitignore` entries for `.build/` and `build/`. Run `git init` in Phase 1.
 - App CPU: about 2.5 % on a chart-free page (sidebar + sampling), about 4.5 % on CPU/Memory/Disk views, about 8 % with the Processes table open. Original target was under 1 %; not met. SwiftUI relayout each tick and sampling dominate; further gains would need replacing SwiftUI chart/table views with custom drawing.
 - App memory: about 100 to 120 MB resident (target was 60 MB), stable over a 5 minute run (no growth).
 - Mitigations done: SMC key info cached and sensors read every 2 s, process data every 2 s (visible) or 30 s (otherwise), no offscreen rendering or angular gradients, sampling paused while the window is hidden, app quits when its window closes.
+
+## 10. Performance pass: Canvas charts, fewer invalidations
+- `LiveChartView` draws with `Canvas` instead of Swift Charts (same look); Swift Charts is no longer linked. `MonitorStore` only assigns battery/sensor samples when they change and keeps `availableSections` as stored state.
+- Measured with `top` (40 s per page, 2 s samples, release build) and `footprint`, before → after: CPU view 5.3 → 3.4 %, Memory view 5.0 → 3.0 %, Disk view 4.7 → 2.9 %, Settings 3.3 → 2.3 %. Footprint on chart pages 48–61 → 43–45 MB. Single runs on a busy machine, so roughly ±0.5 %. These use a different method from section 9's memory figure (resident size), so compare within this section.
+- Still above the 1 % target. Remaining costs: sidebar sparklines re-rendering every tick, sampling, and the Processes table.
