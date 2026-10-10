@@ -98,8 +98,7 @@ struct RingGauge: View {
             Circle().stroke(Theme.cardBorder, lineWidth: 12)
             Circle()
                 .trim(from: 0, to: min(max(fraction, 0), 1))
-                .stroke(AngularGradient(colors: [tint.opacity(0.55), tint], center: .center, startAngle: .degrees(0), endAngle: .degrees(360 * max(fraction, 0.01))),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                .stroke(tint, style: StrokeStyle(lineWidth: 12, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 2) {
                 Text(valueText).font(.system(size: 26, weight: .semibold, design: .rounded).monospacedDigit())

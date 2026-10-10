@@ -36,7 +36,7 @@ final class MonitorStore {
     private(set) var cpuTempHistory = RingBuffer<Double>(capacity: historyCapacity)
     private(set) var batteryHistory = RingBuffer<Double>(capacity: historyCapacity)
 
-    /// Number of visible views that want fresh process data every tick. Otherwise processes refresh every 5 s.
+    /// Number of visible views that want fresh process data. Otherwise processes refresh only every 30 s.
     @ObservationIgnored private var processDemand = 0
     @ObservationIgnored private var lastProcessSample: TimeInterval = 0
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -61,7 +61,8 @@ final class MonitorStore {
                 // Readers run off the main actor; one combined snapshot is published per tick.
                 guard let store = self else { return }
                 let now = ProcessInfo.processInfo.systemUptime
-                let wantProcesses = store.processDemand > 0 || now - store.lastProcessSample >= 5
+                // Process data costs the most to gather and render: 2 s while a process view is up, 30 s otherwise.
+                let wantProcesses = now - store.lastProcessSample >= (store.processDemand > 0 ? 2 : 30)
                 if wantProcesses { store.lastProcessSample = now }
                 let snapshot = await Task.detached(priority: .utility) { sampler.sample(includeProcesses: wantProcesses) }.value
                 guard let self, !Task.isCancelled else { return }
@@ -76,6 +77,26 @@ final class MonitorStore {
     func stop() {
         task?.cancel()
         task = nil
+    }
+
+    /// Sampling pauses while the window is hidden or minimized (nothing is showing the data).
+    /// Histories restart on resume so the charts never show a stale gap as live data.
+    func setWindowVisible(_ visible: Bool) {
+        if visible, task == nil {
+            resetHistories()
+            lastProcessSample = 0
+            start()
+        } else if !visible {
+            stop()
+        }
+    }
+
+    private func resetHistories() {
+        cpuHistory.removeAll(); memoryUsedHistory.removeAll(); swapHistory.removeAll()
+        diskReadHistory.removeAll(); diskWriteHistory.removeAll()
+        netDownHistory.removeAll(); netUpHistory.removeAll()
+        gpuHistory.removeAll(); cpuTempHistory.removeAll(); batteryHistory.removeAll()
+        coreHistories = []
     }
 
     private func apply(_ s: Snapshot) {
@@ -111,6 +132,7 @@ final class MonitorStore {
         }
         if let p = s.processes {
             processes = p.rows
+            ProcessIcons.prune(alive: Set(p.rows.map(\.pid)))
             processCount = p.processCount
             threadCount = p.threadCount
         }

@@ -32,6 +32,5 @@ struct SparklineView: View {
                 startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
             context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
         }
-        .drawingGroup()
     }
 }

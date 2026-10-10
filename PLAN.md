@@ -221,3 +221,9 @@ Add `.gitignore` entries for `.build/` and `build/`. Run `git init` in Phase 1.
 - The process list sorts by every column and filters by search; there is no way to kill a process.
 - Alerts fire (test by temporarily lowering a threshold) and respect the cooldown.
 - The app uses under 1 % CPU on average and under 60 MB of memory while idle with the window open.
+
+## 9. Phase 7 results (measured on the dev Mac, release build, window open)
+- Phase 6 (menu bar, settings window, alerts) was skipped; a Settings section in the sidebar replaced it.
+- App CPU: about 2.5 % on a chart-free page (sidebar + sampling), about 4.5 % on CPU/Memory/Disk views, about 8 % with the Processes table open. Original target was under 1 %; not met. SwiftUI relayout each tick and sampling dominate; further gains would need replacing SwiftUI chart/table views with custom drawing.
+- App memory: about 100 to 120 MB resident (target was 60 MB), stable over a 5 minute run (no growth).
+- Mitigations done: SMC key info cached and sensors read every 2 s, process data every 2 s (visible) or 30 s (otherwise), no offscreen rendering or angular gradients, sampling paused while the window is hidden, app quits when its window closes.

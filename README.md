@@ -1,0 +1,62 @@
+# Resource Monitor
+
+A native macOS resource monitor in the spirit of the Windows Task Manager *Performance* tab: live CPU, memory, disk and network charts, plus GPU, sensors, battery and a read-only process list. Always dark, Swift + SwiftUI + Swift Charts, no root, no helpers, no network access.
+
+Built for Apple Silicon on macOS 14+ using only the Command Line Tools (no Xcode).
+
+## Build and run
+
+```bash
+scripts/build-app.sh
+open "build/Resource Monitor.app"
+```
+
+`build-app.sh` makes a release arm64 build, wraps it in `build/Resource Monitor.app`, and ad-hoc signs it.
+
+Other commands:
+
+```bash
+swift build                       # debug build
+swift test                        # unit tests (Swift Testing)
+.build/debug/ResourceMonitor --dump 3          # print raw samples to stdout and exit
+open -n "build/Resource Monitor.app" --args --section memory   # open on a given section
+```
+
+## What it shows
+
+| Section | Contents |
+|---|---|
+| CPU | Utilization ring and 60 s chart, user/system/idle bar, per-core view (E/P cores), load average, uptime, process and thread counts, top 5 processes |
+| Memory | Used ring and chart, composition bar (App / Wired / Compressed / Cached / Free), pressure gauge, swap, top 5 processes. Uses Activity Monitor's definitions |
+| Disk | Read/write chart, IOPS, a card per volume with a fill bar |
+| Network | Download/upload chart, session totals, a card per active interface with addresses and rates |
+| GPU | Utilization ring and chart, device / renderer / tiler engines, GPU memory in use |
+| Sensors | CPU temperature chart and every temperature the SMC exposes, grouped; fans when present (best effort) |
+| Battery | Charge ring, state, time remaining, power draw, health, cycles, temperature |
+| Processes | Sortable table (every column), search by name or PID, My / All filter. **View only: there is no kill or quit action anywhere** |
+| Settings | Update interval (0.5 / 1 / 2 s), default process filter, launch at login |
+
+GPU, Sensors and Battery only appear in the sidebar when the Mac provides that data.
+
+## How it works
+
+- `Sources/MonitorCore`: a UI-free library. One reader per resource (`CPUReader`, `MemoryReader`, `DiskReader`, `NetworkReader`, `GPUReader`, `SensorReader`, `BatteryReader`, `ProcessReader`) built on Mach, sysctl, IOKit and libproc. Readers keep the previous raw counters and return rates from the real elapsed time. They return `nil` when data isn't available rather than failing. Pure delta math lives in `CounterMath.swift` and is unit-tested.
+- `Sources/ResourceMonitor`: the SwiftUI app. `MonitorStore` runs the readers off the main actor once per tick, publishes one snapshot, and keeps 60-sample ring-buffer histories.
+- Sampling pauses while the window is hidden or minimized, and the app quits when its window is closed.
+- Process data is gathered every 2 s while a process view is on screen and every 30 s otherwise.
+- Settings are stored in `UserDefaults`; nothing else is written to disk.
+
+## Known limits
+
+- No CPU frequency or "disk active time" (no public API on Apple Silicon).
+- Sensor names are SMC keys; which keys exist varies by Mac, and the CPU group reflects the SMC's CPU-related sensors, not a single die temperature.
+- Processes owned by root or other users often refuse detailed queries; they are still listed, with "—" for the metrics that can't be read.
+- Wi-Fi network names aren't shown (they need Location permission); interfaces appear by BSD name (`en0`).
+- Launch at login can fail unless the app is in `/Applications`.
+- Measured resource use of the app itself is above the original targets; see the Phase 7 notes in `PLAN.md`.
+
+## Toolchain notes (Command Line Tools only)
+
+- In the macOS 27 SDK `@State` is a macro whose plugin isn't in the Command Line Tools, so views use `State<T>(initialValue:)` directly. Other property wrappers are avoided for the same reason (settings use an `@Observable` class over `UserDefaults`).
+- The Swift Testing macro plugin is outside the default search path, so `Package.swift` adds `-plugin-path` for the test target.
+- `ld` prints harmless "search path not found" warnings about missing Xcode directories.

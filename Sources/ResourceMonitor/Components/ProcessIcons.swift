@@ -10,6 +10,12 @@ enum ProcessIcons {
         return img
     }()
 
+    /// Drops icons of processes that no longer exist (also stops a reused pid from showing a stale icon).
+    static func prune(alive: Set<Int32>) {
+        guard cache.count > alive.count else { return }
+        cache = cache.filter { alive.contains($0.key) }
+    }
+
     static func icon(for pid: Int32) -> (image: NSImage, isApp: Bool) {
         if let cached = cache[pid] { return cached }
         let app = NSRunningApplication(processIdentifier: pid)

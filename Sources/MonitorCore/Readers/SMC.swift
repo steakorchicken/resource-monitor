@@ -57,18 +57,24 @@ final class SMC {
     }
 
     struct Raw { var type: String; var bytes: [UInt8] }
+    struct KeyInfo { var size: UInt32; var type: String }
 
-    func readRaw(_ key: String) -> Raw? {
-        let code = SMC.code(key)
-        guard let info = call(key: code, command: .readKeyInfo) else { return nil }
+    func keyInfo(_ key: String) -> KeyInfo? {
+        guard let info = call(key: SMC.code(key), command: .readKeyInfo) else { return nil }
         let size = u32(info, Offset.dataSize)
-        let type = SMC.string(u32(info, Offset.dataType))
-        guard size > 0, size <= 32, let out = call(key: code, command: .readBytes, dataSize: size) else { return nil }
-        return Raw(type: type, bytes: Array(out[Offset.bytes..<(Offset.bytes + Int(size))]))
+        guard size > 0, size <= 32 else { return nil }
+        return KeyInfo(size: size, type: SMC.string(u32(info, Offset.dataType)))
     }
 
-    func readNumber(_ key: String) -> Double? {
-        guard let raw = readRaw(key) else { return nil }
+    /// Reads a key; pass a cached `info` to skip the extra key-info round trip.
+    func readRaw(_ key: String, info: KeyInfo? = nil) -> Raw? {
+        guard let info = info ?? keyInfo(key),
+              let out = call(key: SMC.code(key), command: .readBytes, dataSize: info.size) else { return nil }
+        return Raw(type: info.type, bytes: Array(out[Offset.bytes..<(Offset.bytes + Int(info.size))]))
+    }
+
+    func readNumber(_ key: String, info: KeyInfo? = nil) -> Double? {
+        guard let raw = readRaw(key, info: info) else { return nil }
         return SMC.decode(raw)
     }
 

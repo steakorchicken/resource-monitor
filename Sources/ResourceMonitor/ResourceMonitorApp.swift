@@ -3,13 +3,26 @@ import AppKit
 import MonitorCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        NSApp.appearance = NSAppearance(named: .darkAqua)
-    }
+    /// Set by the app so window visibility can pause/resume sampling.
+    var onVisibilityChange: ((Bool) -> Void)?
+    private var observer: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        observer = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            let visible = NSApp.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
+            self?.onVisibilityChange?(visible)
+        }
+    }
+
+    /// No menu bar item, so closing the window quits the app.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSApp.appearance = NSAppearance(named: .darkAqua)
     }
 }
 
@@ -35,7 +48,10 @@ struct ResourceMonitorApp: App {
         Window("Resource Monitor", id: "main") {
             RootView()
                 .environment(store)
-                .task { store.start() }
+                .onAppear {
+                    appDelegate.onVisibilityChange = { store.setWindowVisible($0) }
+                    store.start()
+                }
                 .preferredColorScheme(.dark)
                 .frame(minWidth: 900, minHeight: 600)
         }

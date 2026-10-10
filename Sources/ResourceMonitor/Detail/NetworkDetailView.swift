@@ -38,6 +38,16 @@ struct NetworkDetailView: View {
                 StatTile(label: "Sent this session", value: ByteFormatter.string(n.sessionSent))
             }
 
+            if n.interfaces.isEmpty {
+                SectionCard {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wifi.slash").foregroundStyle(Theme.textSecondary)
+                        Text("No active network interface. Connect to Wi-Fi or Ethernet to see activity.")
+                            .font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
+                    }
+                }
+            }
+
             ForEach(n.interfaces) { i in
                 SectionCard {
                     HStack {
