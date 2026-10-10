@@ -4,6 +4,19 @@ A native macOS resource monitor in the spirit of the Windows Task Manager *Perfo
 
 Built for Apple Silicon on macOS 14+ using only the Command Line Tools (no Xcode).
 
+## Screenshots
+
+![CPU view with utilization ring, 60 second chart and top processes](docs/screenshots/cpu.png)
+
+| | |
+|---|---|
+| ![Memory view with composition bar and pressure gauge](docs/screenshots/memory.png) | ![Disk view with read/write chart and volume cards](docs/screenshots/disk.png) |
+| **Memory**: composition, pressure and swap | **Disk**: read/write throughput and volumes |
+| ![GPU view with engine utilization](docs/screenshots/gpu.png) | ![Sensors view with temperature chart and sensor list](docs/screenshots/sensors.png) |
+| **GPU**: utilization and engines | **Sensors**: temperatures and fans (best effort) |
+| ![Battery view with charge ring and health](docs/screenshots/battery.png) | |
+| **Battery**: charge, power draw and health | |
+
 ## Install (step by step)
 
 Resource Monitor isn't distributed as a ready-made download. You build it yourself from this source code, which takes about five minutes and never needs a paid Apple developer account. Everything runs locally; the app makes no network connections and needs no admin password.
