@@ -18,4 +18,12 @@ public enum ByteFormatter {
         if unit == 0 { return "\(Int(value)) B" }
         return String(format: value < 10 ? "%.2f %@" : (value < 100 ? "%.1f %@" : "%.0f %@"), value, units[unit])
     }
+
+    /// Binary (1024-based) GB like Activity Monitor uses for RAM, e.g. "5.69 GB".
+    public static func memoryString(_ bytes: UInt64) -> String {
+        let value = Double(bytes)
+        let gb = value / 1_073_741_824
+        if gb >= 1 { return String(format: "%.2f GB", gb) }
+        return String(format: "%.0f MB", value / 1_048_576)
+    }
 }

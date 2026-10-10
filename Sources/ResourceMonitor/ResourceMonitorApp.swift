@@ -53,12 +53,19 @@ struct RootView: View {
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(selection: _selection.projectedValue)
+            SidebarView(selection: _selection.projectedValue, store: store)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
         } detail: {
             ZStack {
                 Theme.windowBackground.ignoresSafeArea()
-                DebugReadout(item: selection ?? .cpu, store: store)
+                switch selection ?? .cpu {
+                case .cpu: CPUDetailView(store: store)
+                case .memory: MemoryDetailView(store: store)
+                case .disk: DiskDetailView(store: store)
+                case .network: NetworkDetailView(store: store)
+                default:
+                    Text("Coming in a later phase").foregroundStyle(Theme.textSecondary)
+                }
             }
         }
         .background(Theme.windowBackground)

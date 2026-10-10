@@ -11,6 +11,11 @@ import Testing
         #expect(ByteFormatter.string(-5.0) == "0 B")
     }
 
+    @Test func memoryBinary() {
+        #expect(ByteFormatter.memoryString(8_589_934_592) == "8.00 GB")
+        #expect(ByteFormatter.memoryString(536_870_912) == "512 MB")
+    }
+
     @Test func rates() {
         #expect(RateFormatter.string(bytesPerSecond: 2_300_000) == "2.30 MB/s")
         #expect(RateFormatter.percent(23.4) == "23 %")
