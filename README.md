@@ -176,7 +176,7 @@ GPU, Sensors and Battery only appear in the sidebar when the Mac provides that d
 - Processes owned by root or other users often refuse detailed queries; they are still listed, with "—" for the metrics that can't be read.
 - Wi-Fi network names aren't shown (they need Location permission); interfaces appear by BSD name (`en0`).
 - Launch at login can fail unless the app is in `/Applications`.
-- Measured resource use of the app itself is above the original targets; see the Phase 7 notes in `PLAN.md`.
+- Measured resource use of the app itself (about 3 % CPU on chart pages) is still above the original targets; see sections 9 and 10 of `PLAN.md`.
 
 ## Toolchain notes (Command Line Tools only)
 
