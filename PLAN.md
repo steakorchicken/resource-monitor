@@ -211,7 +211,7 @@ Add `.gitignore` entries for `.build/` and `build/`. Run `git init` in Phase 1.
 3. **Main UI for the four core resources:** `SparklineView`, `LiveChartView`, `StatTile`, `UsageBar`, the sidebar, and the CPU/Memory/Disk/Network detail views.
 4. **Processes:** `ProcessReader`, the Processes table (sorting, search, my/all filter), and the top-N cards in the CPU and Memory views.
 5. **Extras:** the GPU, Battery and Sensors readers and their views (Sensors last, being best-effort).
-6. **Menu bar and settings:** `MenuBarExtra` label and panel, the Settings scene, the Dock-icon toggle, launch at login, the update interval, and `AlertManager` with notifications.
+6. **SKIPPED at the user's request (code reverted in git; menu bar, Settings scene, Dock toggle and alerts are not part of the app).** Original scope: **Menu bar and settings:** `MenuBarExtra` label and panel, the Settings scene, the Dock-icon toggle, launch at login, the update interval, and `AlertManager` with notifications.
 7. **Polish and verify:** check the app's own CPU and memory use against the targets in §4, check for leaks (watch the process memory over 10 min), handle edge cases (unplugging an external drive, Wi-Fi off, no battery), write the README, and run a final `build-app.sh`.
 
 ## 8. Definition of done
