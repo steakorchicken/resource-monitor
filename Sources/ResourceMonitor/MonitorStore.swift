@@ -42,14 +42,9 @@ final class MonitorStore {
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private let sampler = SystemSampler()
 
-    /// Sidebar rows that have data on this Mac.
-    var availableSections: [SidebarItem] {
-        var items: [SidebarItem] = [.cpu, .memory, .disk, .network]
-        if gpu != nil { items.append(.gpu) }
-        if sensors != nil { items.append(.sensors) }
-        if battery != nil { items.append(.battery) }
-        return items
-    }
+    /// Sidebar rows that have data on this Mac. Stored (not computed from the samples) so views reading it
+    /// are only invalidated when a section actually appears or disappears, not on every tick.
+    private(set) var availableSections: [SidebarItem] = [.cpu, .memory, .disk, .network]
 
     func start() {
         guard task == nil else { return }
@@ -122,14 +117,15 @@ final class MonitorStore {
             gpu = g
             gpuHistory.append(g.deviceUtilization)
         }
-        battery = s.battery
-        if let b = s.battery { batteryHistory.append(b.percent) }
-        if let t = s.sensors {
-            sensors = t
-            if let avg = t.cpuAverage { cpuTempHistory.append(avg) }
-        } else {
-            sensors = nil
+        // @Observable invalidates on every assignment, even of an identical value. The sampler hands back
+        // cached battery (5 s) and sensor (2 s) samples between refreshes, so only assign real changes.
+        // Histories still append every tick to stay aligned with the other charts.
+        if s.battery?.timestamp != battery?.timestamp || s.battery?.temperatureCelsius != battery?.temperatureCelsius {
+            battery = s.battery
         }
+        if let b = s.battery { batteryHistory.append(b.percent) }
+        if s.sensors?.timestamp != sensors?.timestamp { sensors = s.sensors }
+        if let avg = s.sensors?.cpuAverage { cpuTempHistory.append(avg) }
         if let p = s.processes {
             processes = p.rows
             ProcessIcons.prune(alive: Set(p.rows.map(\.pid)))
@@ -141,5 +137,11 @@ final class MonitorStore {
             netDownHistory.append(n.downBytesPerSecond)
             netUpHistory.append(n.upBytesPerSecond)
         }
+
+        var sections: [SidebarItem] = [.cpu, .memory, .disk, .network]
+        if gpu != nil { sections.append(.gpu) }
+        if sensors != nil { sections.append(.sensors) }
+        if battery != nil { sections.append(.battery) }
+        if sections != availableSections { availableSections = sections }
     }
 }
