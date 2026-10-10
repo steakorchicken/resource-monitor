@@ -8,15 +8,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        let settings = AppSettings.shared
+        NSApp.setActivationPolicy(settings.showDockIcon ? .regular : .accessory)
+        if settings.showMainWindowAtLaunch {
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            // A `Window` scene always opens at launch on macOS 14, so close it again.
+            DispatchQueue.main.async {
+                for window in NSApp.windows where window.title == "Resource Monitor" { window.close() }
+            }
+        }
+    }
+
+    /// With the menu bar item hidden, closing the main window quits the app.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        !AppSettings.shared.showMenuBar
     }
 }
 
 @main
 struct ResourceMonitorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    private let store = MonitorStore()
+    private let settings = AppSettings.shared
+    private let store: MonitorStore
 
     init() {
         // `ResourceMonitor --dump [ticks]` prints raw samples to stdout and exits (for sanity checks).
@@ -29,18 +43,32 @@ struct ResourceMonitorApp: App {
             }
             exit(0)
         }
+        // Sampling runs for the whole app lifetime so the menu bar label stays live without a window.
+        store = MonitorStore(settings: AppSettings.shared)
+        store.start()
     }
 
     var body: some Scene {
         Window("Resource Monitor", id: "main") {
             RootView()
                 .environment(store)
-                .task { store.start() }
                 .preferredColorScheme(.dark)
                 .frame(minWidth: 900, minHeight: 600)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1040, height: 700)
+
+        MenuBarExtra(isInserted: Binding(get: { settings.showMenuBar }, set: { settings.showMenuBar = $0 })) {
+            MenuBarPanel(store: store, settings: settings)
+        } label: {
+            MenuBarLabel(store: store, settings: settings)
+        }
+        .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView(settings: settings)
+                .preferredColorScheme(.dark)
+        }
     }
 }
 
@@ -65,6 +93,10 @@ struct RootView: View {
         } detail: {
             ZStack {
                 Theme.windowBackground.ignoresSafeArea()
+                if CommandLine.arguments.contains("--panel-preview") {
+                    // Debug aid: shows the menu bar panel in the main window for screenshots.
+                    MenuBarPanel(store: store, settings: AppSettings.shared)
+                } else {
                 switch selection ?? .cpu {
                 case .cpu: CPUDetailView(store: store)
                 case .memory: MemoryDetailView(store: store)
@@ -74,6 +106,7 @@ struct RootView: View {
                 case .gpu: GPUDetailView(store: store)
                 case .sensors: SensorsDetailView(store: store)
                 case .battery: BatteryDetailView(store: store)
+                }
                 }
             }
         }
