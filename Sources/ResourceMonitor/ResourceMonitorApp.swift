@@ -71,6 +71,7 @@ struct RootView: View {
                 case .disk: DiskDetailView(store: store)
                 case .network: NetworkDetailView(store: store)
                 case .processes: ProcessListView(store: store)
+                case .settings: SettingsDetailView(settings: store.settings)
                 case .gpu: GPUDetailView(store: store)
                 case .sensors: SensorsDetailView(store: store)
                 case .battery: BatteryDetailView(store: store)

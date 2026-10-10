@@ -8,9 +8,10 @@ final class MonitorStore {
     static let historyCapacity = 60
 
     let systemInfo = SystemInfoReader.read()
+    let settings: AppSettings
 
-    /// Seconds between samples (0.5, 1 or 2). Takes effect on the next tick.
-    var interval: Double = 1.0
+    init(settings: AppSettings? = nil) { self.settings = settings ?? AppSettings.shared }
+
 
     private(set) var cpu: CPUSample?
     private(set) var memory: MemorySample?
@@ -55,7 +56,7 @@ final class MonitorStore {
         let sampler = self.sampler
         task = Task { [weak self] in
             while !Task.isCancelled {
-                let delay = self?.interval ?? 1.0
+                let delay = self?.settings.updateInterval ?? 1.0
                 try? await Task.sleep(for: .seconds(delay))
                 // Readers run off the main actor; one combined snapshot is published per tick.
                 guard let store = self else { return }

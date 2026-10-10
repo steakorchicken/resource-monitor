@@ -8,10 +8,13 @@ struct ProcessListView: View {
     // `@State` macro is unavailable in the CLT toolchain, so State is used directly.
     private var _sortOrder = State(initialValue: [ProcessSortComparator(.cpu, order: .reverse)])
     private var _search = State(initialValue: "")
-    private var _mineOnly = State(initialValue: true)
+    private var _mineOnly: State<Bool>
     private var _selection = State(initialValue: Set<Int32>())
 
-    init(store: MonitorStore) { self.store = store }
+    init(store: MonitorStore) {
+        self.store = store
+        _mineOnly = State(initialValue: store.settings.processesMineOnly)
+    }
 
     private var rows: [ProcessInfoRow] {
         let me = getuid()

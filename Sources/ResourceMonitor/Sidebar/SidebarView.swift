@@ -10,6 +10,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case sensors = "Sensors"
     case battery = "Battery"
     case processes = "Processes"
+    case settings = "Settings"
 
     var id: String { rawValue }
 
@@ -22,7 +23,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .gpu: Theme.gpu
         case .sensors: Theme.sensors
         case .battery: Theme.battery
-        case .processes: Theme.textSecondary
+        case .processes, .settings: Theme.textSecondary
         }
     }
 
@@ -44,6 +45,11 @@ struct SidebarView: View {
                 Text("Processes").foregroundStyle(Theme.textPrimary)
             }
             .tag(SidebarItem.processes)
+            HStack(spacing: 8) {
+                Image(systemName: "gearshape").foregroundStyle(Theme.textSecondary)
+                Text("Settings").foregroundStyle(Theme.textPrimary)
+            }
+            .tag(SidebarItem.settings)
         }
         .scrollContentBackground(.hidden)
         .background(Theme.windowBackground)
@@ -86,7 +92,7 @@ struct SidebarView: View {
             SparklineView(values: store.cpuTempHistory.elements, color: item.tint, maxValue: 110)
         case .battery:
             SparklineView(values: store.batteryHistory.elements, color: item.tint, maxValue: 100)
-        case .processes:
+        case .processes, .settings:
             EmptyView()
         }
     }
@@ -111,7 +117,7 @@ struct SidebarView: View {
         case .battery:
             guard let b = store.battery else { return "—" }
             return String(format: "%.0f %% · ", b.percent) + (b.state == .charging ? "Charging" : (b.state == .charged ? "Charged" : "On battery"))
-        case .processes:
+        case .processes, .settings:
             return ""
         }
     }
