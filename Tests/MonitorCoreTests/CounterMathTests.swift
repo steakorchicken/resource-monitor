@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import MonitorCore
 
@@ -57,5 +58,35 @@ import Testing
         }
         #expect(NetworkFilter.isPhysical("en1"))
         #expect(!NetworkFilter.isPhysical("utun0"))
+    }
+}
+
+@Suite struct ProcessTests {
+    @Test func cpuPercentFromDeltas() {
+        #expect(abs(ProcessMath.cpuPercent(prevCPUNanos: 1e9, curCPUNanos: 1.5e9, wallNanos: 1e9) - 50) < 0.001)
+        #expect(abs(ProcessMath.cpuPercent(prevCPUNanos: 0, curCPUNanos: 2e9, wallNanos: 1e9) - 200) < 0.001)
+        #expect(ProcessMath.cpuPercent(prevCPUNanos: 5, curCPUNanos: 1, wallNanos: 1e9) == 0)
+        #expect(ProcessMath.cpuPercent(prevCPUNanos: 0, curCPUNanos: 1, wallNanos: 0) == 0)
+    }
+
+    @Test func nilValuesSortLastInBothDirections() {
+        let rows = [ProcessInfoRow(pid: 1, name: "a", cpuPercent: 5),
+                    ProcessInfoRow(pid: 2, name: "b", cpuPercent: nil),
+                    ProcessInfoRow(pid: 3, name: "c", cpuPercent: 50)]
+        let asc = rows.sorted(using: ProcessSortComparator(.cpu, order: .forward)).map(\.pid)
+        let desc = rows.sorted(using: ProcessSortComparator(.cpu, order: .reverse)).map(\.pid)
+        #expect(asc == [1, 3, 2])
+        #expect(desc == [3, 1, 2])
+    }
+
+    @Test func readerListsProcessesIncludingSelf() {
+        let reader = ProcessReader()
+        _ = reader.read()
+        let snap = reader.read()
+        #expect(snap != nil)
+        let me = snap?.rows.first { $0.pid == getpid() }
+        #expect(me != nil)
+        #expect(me?.memoryBytes != nil)
+        #expect((snap?.threadCount ?? 0) > 0)
     }
 }

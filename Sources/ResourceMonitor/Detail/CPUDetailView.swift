@@ -58,11 +58,14 @@ struct CPUDetailView: View {
                 }
             }
 
+            TopProcessesCard(store: store, metric: .cpu, tint: Theme.cpu)
+
             TileGrid {
                 StatTile(label: "Load average", value: String(format: "%.2f", c.loadAverage.one),
                          detail: String(format: "5m %.2f · 15m %.2f", c.loadAverage.five, c.loadAverage.fifteen))
                 StatTile(label: "Cores", value: "\(info.logicalCores)",
                          detail: "\(info.performanceCores) performance · \(info.efficiencyCores) efficiency")
+                StatTile(label: "Processes", value: "\(store.processCount)", detail: "\(store.threadCount) threads")
                 StatTile(label: "Uptime", value: DurationFormatter.uptime(c.uptime))
             }
         }

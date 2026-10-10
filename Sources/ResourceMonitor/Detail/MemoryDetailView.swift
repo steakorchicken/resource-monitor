@@ -63,6 +63,8 @@ struct MemoryDetailView: View {
                 }
             }
 
+            TopProcessesCard(store: store, metric: .memory, tint: Theme.memory)
+
             TileGrid {
                 StatTile(label: "Used", value: ByteFormatter.memoryString(m.used))
                 StatTile(label: "Available", value: ByteFormatter.memoryString(m.available))

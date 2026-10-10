@@ -16,6 +16,9 @@ final class MonitorStore {
     private(set) var memory: MemorySample?
     private(set) var disk: DiskSample?
     private(set) var network: NetworkSample?
+    private(set) var processes: [ProcessInfoRow] = []
+    private(set) var processCount = 0
+    private(set) var threadCount = 0
 
     private(set) var cpuHistory = RingBuffer<Double>(capacity: historyCapacity)
     private(set) var coreHistories: [RingBuffer<Double>] = []
@@ -26,6 +29,9 @@ final class MonitorStore {
     private(set) var netDownHistory = RingBuffer<Double>(capacity: historyCapacity)
     private(set) var netUpHistory = RingBuffer<Double>(capacity: historyCapacity)
 
+    /// Number of visible views that want fresh process data every tick. Otherwise processes refresh every 5 s.
+    @ObservationIgnored private var processDemand = 0
+    @ObservationIgnored private var lastProcessSample: TimeInterval = 0
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private let sampler = SystemSampler()
 
@@ -37,12 +43,19 @@ final class MonitorStore {
                 let delay = self?.interval ?? 1.0
                 try? await Task.sleep(for: .seconds(delay))
                 // Readers run off the main actor; one combined snapshot is published per tick.
-                let snapshot = await Task.detached(priority: .utility) { sampler.sample() }.value
+                guard let store = self else { return }
+                let now = ProcessInfo.processInfo.systemUptime
+                let wantProcesses = store.processDemand > 0 || now - store.lastProcessSample >= 5
+                if wantProcesses { store.lastProcessSample = now }
+                let snapshot = await Task.detached(priority: .utility) { sampler.sample(includeProcesses: wantProcesses) }.value
                 guard let self, !Task.isCancelled else { return }
                 self.apply(snapshot)
             }
         }
     }
+
+    func processViewAppeared() { processDemand += 1 }
+    func processViewDisappeared() { processDemand = max(0, processDemand - 1) }
 
     func stop() {
         task?.cancel()
@@ -67,6 +80,11 @@ final class MonitorStore {
             disk = d
             diskReadHistory.append(d.readBytesPerSecond)
             diskWriteHistory.append(d.writeBytesPerSecond)
+        }
+        if let p = s.processes {
+            processes = p.rows
+            processCount = p.processCount
+            threadCount = p.threadCount
         }
         if let n = s.network {
             network = n

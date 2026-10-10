@@ -48,7 +48,14 @@ struct RootView: View {
     @Environment(MonitorStore.self) private var store
     // `@State` is a macro in the macOS 27 SDK and its plugin is missing from the
     // Command Line Tools, so use the State type directly.
-    private var _selection = State<SidebarItem?>(initialValue: .cpu)
+    private var _selection = State<SidebarItem?>(initialValue: Self.initialSection)
+    /// `--section memory` opens that section first (handy for screenshots).
+    private static var initialSection: SidebarItem {
+        guard let i = CommandLine.arguments.firstIndex(of: "--section"),
+              let name = CommandLine.arguments.dropFirst(i + 1).first?.lowercased(),
+              let item = SidebarItem.allCases.first(where: { $0.rawValue.lowercased() == name }) else { return .cpu }
+        return item
+    }
     private var selection: SidebarItem? { _selection.wrappedValue }
 
     var body: some View {
@@ -63,6 +70,7 @@ struct RootView: View {
                 case .memory: MemoryDetailView(store: store)
                 case .disk: DiskDetailView(store: store)
                 case .network: NetworkDetailView(store: store)
+                case .processes: ProcessListView(store: store)
                 default:
                     Text("Coming in a later phase").foregroundStyle(Theme.textSecondary)
                 }

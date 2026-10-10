@@ -99,4 +99,5 @@ public struct Snapshot: Sendable {
     public var memory: MemorySample?
     public var disk: DiskSample?
     public var network: NetworkSample?
+    public var processes: ProcessSnapshot?
 }

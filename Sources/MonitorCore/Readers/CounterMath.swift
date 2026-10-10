@@ -72,3 +72,11 @@ public enum NetworkFilter {
 
     public static func isPhysical(_ name: String) -> Bool { name.hasPrefix("en") }
 }
+
+public enum ProcessMath {
+    /// CPU percent from cumulative CPU nanoseconds and the wall-clock nanoseconds between samples.
+    public static func cpuPercent(prevCPUNanos: Double, curCPUNanos: Double, wallNanos: Double) -> Double {
+        guard wallNanos > 0, curCPUNanos >= prevCPUNanos else { return 0 }
+        return (curCPUNanos - prevCPUNanos) / wallNanos * 100
+    }
+}
